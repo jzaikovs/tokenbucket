@@ -5,60 +5,60 @@ import (
 	"time"
 )
 
-// Buckets is structure for handling spam-wall filtering
-// It uses ratelimit tocket-bucket algorithm for each checked word
+// Buckets is structure for handling multiple token buckets with same rate and initial capacity
 type Buckets struct {
 	lock     sync.Mutex
-	history  map[string]bucket
+	buckets  map[string]bucket
 	capacity float32 // max tokens in bucket
-	fillRate float32 // tokens per seconds
-	gcSleep  time.Duration
+	rate     float32 // tokens per seconds
 }
 
-// NewBuckets is constructor for buckets handler
-func NewBuckets(capacity, refilTime float32, gcTime time.Duration) *Buckets {
-	if capacity < 1.0 {
-		panic("Capacity should be larger than 1.0")
+// NewBuckets is constructor for buckets handler, with initial bucket capacity and rate (tokens/second) at which buckets gain free space
+func NewBuckets(capacity int, rate float32) *Buckets {
+	if capacity < 1 {
+		panic("Capacity should be larger than 1")
 	}
 
-	buckets := &Buckets{history: make(map[string]bucket), capacity: capacity, fillRate: capacity / refilTime, gcSleep: gcTime}
-	go buckets.gc()
+	buckets := &Buckets{buckets: make(map[string]bucket), capacity: float32(capacity), rate: rate}
+
+	// start bucket cleanup with interval in witch buckets can fully refill if not used
+	go buckets.freeBuckets(time.Duration(float32(capacity)/rate)*time.Second + time.Second)
+
 	return buckets
 }
 
-// GC deletes old buckets from memory
-func (buckets *Buckets) gc() {
+// freeBuckets deletes old buckets from memory and sleeps for some duration before cleans again
+func (buckets *Buckets) freeBuckets(sleep time.Duration) {
 	for {
-		time.Sleep(buckets.gcSleep)
+		time.Sleep(sleep)
 		buckets.lock.Lock()
 		now := time.Now()
-		for k, r := range buckets.history {
+		for k, r := range buckets.buckets {
 			// if bucket is in memory for too long then remove it
 			// anyways on next use it will be empty so no reason to hold it in memory
-			if float32(now.Sub(r.last).Seconds())*buckets.fillRate > buckets.capacity {
-				delete(buckets.history, k)
+			if float32(now.Sub(r.last).Seconds())*buckets.rate > buckets.capacity {
+				delete(buckets.buckets, k)
 			}
 		}
 		buckets.lock.Unlock()
 	}
 }
 
-// Add adds token in bucket with specified key
-func (buckets *Buckets) Add(key string) (ok bool) {
-	now := time.Now()
-
+// Add adds token in bucket with specified name and returns true if token is added in bucket.
+// If specified bucket is full then function returns false
+func (buckets *Buckets) Add(name string, t time.Time) (ok bool) {
 	buckets.lock.Lock()
 	defer buckets.lock.Unlock()
 
-	r, ok := buckets.history[key]
+	r, ok := buckets.buckets[name]
 	if !ok {
 		// first occurrence
-		buckets.history[key] = bucket{last: time.Now(), freeSpace: buckets.capacity - 1.0}
+		buckets.buckets[name] = bucket{last: t, space: buckets.capacity - 1.0}
 		return true
 	}
-	ok = (&r).fill(buckets.capacity, buckets.fillRate, now)
+	ok = (&r).fill(buckets.capacity, buckets.rate, t)
 
-	buckets.history[key] = r
+	buckets.buckets[name] = r
 
 	return ok
 }
