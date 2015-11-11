@@ -16,12 +16,12 @@ func TestFill(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < rate; j++ {
 			if !buckets.Add("hello", time.Now()) {
-				t.Error("wall blocked too fast", i, j)
+				t.Error("Bucket is full too fast", i, j)
 				return
 			}
 		}
 		if buckets.Add("hello", time.Now()) { // <- this should fail, bucket is full
-			t.Error("wall didn't blocked at wall boundry")
+			t.Error("Bucket is not empty when it should be")
 			return
 		}
 		time.Sleep(time.Second) // wait for bucket to empty
@@ -47,12 +47,12 @@ func TestBucket(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < capacity; j++ {
 			if !bucket.Add(time.Now()) {
-				t.Error("wall blocked too fast", i, j)
+				t.Error("Bucket is full too fast", i, j)
 				return
 			}
 		}
 		if bucket.Add(time.Now()) { // <- this should fail, bucket is full
-			t.Error("wall didn't blocked at wall boundry")
+			t.Error("Bucket is not empty when it should be")
 			return
 		}
 		time.Sleep(time.Second) // wait for bucket to empty

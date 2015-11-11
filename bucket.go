@@ -38,7 +38,7 @@ func (r *bucket) fill(capacity, rate float32, t time.Time) (ok bool) {
 	}
 
 	if r.space < 1.0 {
-		// bucket is full no more free space, so next token can be added only where there is space for token
+		// bucket is full no more free space, so next token can be added only when there is space for token
 		return false
 	}
 
