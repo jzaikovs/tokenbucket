@@ -19,9 +19,15 @@ func New(capacity int, rate float32) *Bucket {
 	return &Bucket{bucket: bucket{last: time.Now(), space: float32(capacity)}, capacity: float32(capacity), rate: rate}
 }
 
-// Add adds token into bucket, returns true if token added or false if bucket is full
-func (b *Bucket) Add(t time.Time) bool {
+// Add adds token into bucket, returns free space left in bucket and ok if token was added
+func (b *Bucket) Add(t time.Time) (int, bool) {
 	return b.fill(b.capacity, b.rate, t)
+}
+
+// Check adds token in bucket and returns true if token added
+func (b *Bucket) Check(t time.Time) bool {
+	_, ok := b.fill(b.capacity, b.rate, t)
+	return ok
 }
 
 type bucket struct {
@@ -29,7 +35,7 @@ type bucket struct {
 	space float32   // free space (in tokens) in bucket
 }
 
-func (r *bucket) fill(capacity, rate float32, t time.Time) (ok bool) {
+func (r *bucket) fill(capacity, rate float32, t time.Time) (space int, ok bool) {
 	r.space += float32(t.Sub(r.last).Seconds()) * rate
 	r.last = t
 
@@ -39,9 +45,9 @@ func (r *bucket) fill(capacity, rate float32, t time.Time) (ok bool) {
 
 	if r.space < 1.0 {
 		// bucket is full no more free space, so next token can be added only when there is space for token
-		return false
+		return int(r.space), false
 	}
 
 	r.space -= 1.0
-	return true
+	return int(r.space), true
 }

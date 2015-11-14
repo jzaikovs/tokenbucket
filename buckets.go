@@ -44,21 +44,28 @@ func (buckets *Buckets) freeBuckets(sleep time.Duration) {
 	}
 }
 
-// Add adds token in bucket with specified name and returns true if token is added in bucket.
-// If specified bucket is full then function returns false
-func (buckets *Buckets) Add(name string, t time.Time) (ok bool) {
+// Add adds token in bucket with specified name and returns free space left in bucket and ok if token was added
+func (buckets *Buckets) Add(name string, t time.Time) (space int, ok bool) {
 	buckets.lock.Lock()
 	defer buckets.lock.Unlock()
 
 	r, ok := buckets.buckets[name]
 	if !ok {
 		// first occurrence
-		buckets.buckets[name] = bucket{last: t, space: buckets.capacity - 1.0}
-		return true
+		b := bucket{last: t, space: buckets.capacity - 1.0}
+		buckets.buckets[name] = b
+		return int(b.space), true
 	}
-	ok = (&r).fill(buckets.capacity, buckets.rate, t)
+
+	space, ok = (&r).fill(buckets.capacity, buckets.rate, t)
 
 	buckets.buckets[name] = r
 
+	return space, ok
+}
+
+// Check adds token in specidfied bucket and returns true if token added
+func (buckets *Buckets) Check(name string, t time.Time) bool {
+	_, ok := buckets.Add(name, t)
 	return ok
 }

@@ -15,12 +15,12 @@ func TestFill(t *testing.T) {
 	// it can be repeated each second, because after second bucket will be empty
 	for i := 0; i < 4; i++ {
 		for j := 0; j < rate; j++ {
-			if !buckets.Add("hello", time.Now()) {
+			if !buckets.Check("hello", time.Now()) {
 				t.Error("Bucket is full too fast", i, j)
 				return
 			}
 		}
-		if buckets.Add("hello", time.Now()) { // <- this should fail, bucket is full
+		if buckets.Check("hello", time.Now()) { // <- this should fail, bucket is full
 			t.Error("Bucket is not empty when it should be")
 			return
 		}
@@ -46,12 +46,12 @@ func TestBucket(t *testing.T) {
 	// it can be repeated each second, because after second bucket will be empty
 	for i := 0; i < 4; i++ {
 		for j := 0; j < capacity; j++ {
-			if !bucket.Add(time.Now()) {
+			if !bucket.Check(time.Now()) {
 				t.Error("Bucket is full too fast", i, j)
 				return
 			}
 		}
-		if bucket.Add(time.Now()) { // <- this should fail, bucket is full
+		if bucket.Check(time.Now()) { // <- this should fail, bucket is full
 			t.Error("Bucket is not empty when it should be")
 			return
 		}
