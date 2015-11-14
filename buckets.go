@@ -64,6 +64,11 @@ func (buckets *Buckets) Add(name string, t time.Time) (space int, ok bool) {
 	return space, ok
 }
 
+// Capacity returns maximum bucket capacity
+func (buckets *Buckets) Capacity() int {
+	return int(buckets.capacity)
+}
+
 // Check adds token in specidfied bucket and returns true if token added
 func (buckets *Buckets) Check(name string, t time.Time) bool {
 	_, ok := buckets.Add(name, t)

@@ -24,6 +24,11 @@ func (b *Bucket) Add(t time.Time) (int, bool) {
 	return b.fill(b.capacity, b.rate, t)
 }
 
+// Capacity returns maximum bucket capacity
+func (b *Bucket) Capacity() int {
+	return int(b.capacity)
+}
+
 // Check adds token in bucket and returns true if token added
 func (b *Bucket) Check(t time.Time) bool {
 	_, ok := b.fill(b.capacity, b.rate, t)
